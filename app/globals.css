@@ -1,0 +1,266 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --crt-bg: #0a0f0a;
+    --crt-bg-soft: #0e140e;
+    --crt-panel: #0c130c;
+    --crt-text: #c8ffd0;
+    --crt-text-dim: #6fae7a;
+    --crt-accent: #39ff14;
+    --crt-accent-dim: #1f8a16;
+    --crt-border: #39ff14;
+    --crt-border-dim: #1a5a12;
+    --crt-amber: #ffb000;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--crt-border-dim);
+  }
+  body {
+    background-color: var(--crt-bg);
+    color: var(--crt-text);
+    font-family: var(--font-plex), 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  h1, h2, h3, h4, .font-pixel {
+    font-family: var(--font-vt323), 'VT323', monospace;
+    letter-spacing: 0.04em;
+  }
+}
+
+@layer components {
+  /* Chunky pixel border box */
+  .crt-box {
+    border: 3px solid var(--crt-accent);
+    background-color: var(--crt-panel);
+    box-shadow: 0 0 0 3px var(--crt-bg), 0 0 0 6px var(--crt-accent-dim);
+  position: relative;
+  border-radius: 0;
+  border-style: solid;
+    image-rendering: pixelated;
+  }
+  .crt-box-dim {
+    border: 2px solid var(--crt-border-dim);
+    background-color: var(--crt-panel);
+    border-radius: 0;
+  }
+
+  /* Retro button: invert on hover */
+  .crt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2px solid var(--crt-accent);
+    background-color: transparent;
+    color: var(--crt-accent);
+    padding: 0.5rem 1rem;
+    font-family: var(--font-plex), monospace;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-radius: 0;
+    transition: background-color 0.08s linear, color 0.08s linear;
+    cursor: pointer;
+    user-select: none;
+  }
+  .crt-btn:hover {
+    background-color: var(--crt-accent);
+    color: var(--crt-bg);
+  }
+  .crt-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .crt-btn-solid {
+    background-color: var(--crt-accent);
+    color: var(--crt-bg);
+  }
+  .crt-btn-solid:hover {
+    background-color: transparent;
+    color: var(--crt-accent);
+  }
+
+  /* Tech tag chip */
+  .crt-chip {
+    display: inline-block;
+    border: 2px solid var(--crt-border-dim);
+    color: var(--crt-text-dim);
+    background-color: var(--crt-bg-soft);
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-family: var(--font-plex), monospace;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+  .crt-chip-active {
+    border-color: var(--crt-accent);
+    color: var(--crt-accent);
+    background-color: rgba(57, 255, 20, 0.08);
+  }
+
+  /* Bracketed nav item */
+  .nav-item {
+    color: var(--crt-text-dim);
+    padding: 0.25rem 0.5rem;
+    transition: color 0.08s linear, background-color 0.08s linear;
+    border-radius: 0;
+  }
+  .nav-item:hover,
+  .nav-item.active {
+    color: var(--crt-accent);
+    background-color: rgba(57, 255, 20, 0.1);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 4px rgba(57, 255, 20, 0.6), 0 0 10px rgba(57, 255, 20, 0.25);
+  }
+
+  .crt-input {
+    border: 2px solid var(--crt-border-dim);
+    background-color: var(--crt-bg-soft);
+    color: var(--crt-text);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-plex), monospace;
+    font-size: 0.875rem;
+    border-radius: 0;
+    outline: none;
+  }
+  .crt-input:focus {
+    border-color: var(--crt-accent);
+  }
+}
+
+@layer utilities {
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .image-render-pixel {
+    image-rendering: pixelated;
+  }
+}
+
+/* Scanline overlay — subtle atmospheric effect only.
+   Low opacity + multiply blend so it reads on dark/background areas
+   but does not stripe or darken image content. */
+.crt-scanlines::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.04) 3px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Vignette / screen curvature */
+.crt-vignette::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 60%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+/* Flicker animation */
+@keyframes crt-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.82; }
+  94% { opacity: 1; }
+  96% { opacity: 0.9; }
+  97% { opacity: 1; }
+}
+.crt-flicker {
+  animation: crt-flicker 6s infinite steps(1, end);
+}
+
+@keyframes crt-flicker-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.96; }
+}
+.crt-flicker-soft {
+  animation: crt-flicker-soft 0.18s infinite steps(1, end);
+}
+
+/* Boot noise on load */
+@keyframes boot-noise {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+.boot-noise {
+  animation: boot-noise 0.6s ease-out forwards;
+}
+
+/* Blinking cursor */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.blink {
+  animation: blink 1s steps(1, end) infinite;
+}
+
+/* Snap-in reveal */
+@keyframes snap-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.snap-in {
+  animation: snap-in 0.12s steps(2, end) forwards;
+}
+
+/* Grid flicker for filter transitions */
+@keyframes grid-flicker {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+.grid-flicker {
+  animation: grid-flicker 0.18s steps(2, end);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--crt-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--crt-accent-dim);
+  border: 2px solid var(--crt-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--crt-accent);
+}
+
+::selection {
+  background: var(--crt-accent);
+  color: var(--crt-bg);
+}
