@@ -84,7 +84,9 @@ export function DomainProjects({ domain, heading, subheading }: DomainProjectsPr
         <h1 className="font-pixel text-4xl sm:text-5xl text-crt-accent text-glow">
           <Typewriter text={heading} speed={40} />
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-crt-text/80">{subheading}</p>
+        <p className="mt-2 max-w-2xl text-sm text-crt-text/80">
+          <Typewriter text={subheading} speed={10} startDelay={800} cursor={false} />
+        </p>
       </div>
 
       <div className="mb-6">

@@ -21,8 +21,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'CRT//FOLIO — Retro Terminal Portfolio',
-  description: 'A personal portfolio with a retro Y2K CRT terminal aesthetic.',
+  title: 'Mesam E Tamaar Khan',
+  description: 'A personal portfolio',
 };
 
 export default function RootLayout({

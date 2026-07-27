@@ -6,7 +6,7 @@ import { Typewriter } from '@/components/typewriter';
 import { Download, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ORDER: Domain[] = ['dev', 'cybersecurity', 'blockchain'];
+const ORDER: Domain[] = ['dev', 'cybersecurity']; // blockchain to be added here
 
 export default function ResumePage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -30,7 +30,7 @@ export default function ResumePage() {
           <Typewriter text="RESUME ARCHIVE" speed={40} />
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-crt-text/80">
-          One resume per domain. Download the PDF for the full detail.
+          <Typewriter text="One resume per domain. Download the PDF for the full detail." speed={10} startDelay={800} cursor={false}/>
         </p>
       </div>
 

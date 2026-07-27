@@ -18,12 +18,12 @@ const CARDS = [
     desc: 'Offensive and defensive security work — frameworks, detectors and honeypots.',
     icon: Shield,
   },
-  {
-    href: '/blockchain',
-    title: 'CHAIN',
-    desc: 'Smart contracts, DeFi routers, NFT portals and validator infrastructure.',
-    icon: Boxes,
-  },
+  // {
+  //   href: '/blockchain',
+  //   title: 'CHAIN',
+  //   desc: 'Smart contracts, DeFi routers, NFT portals and validator infrastructure.',
+  //   icon: Boxes,
+  // },
 ];
 
 export default function Home() {
@@ -32,7 +32,7 @@ export default function Home() {
       {/* Hero */}
       <section className="mb-14 crt-flicker">
         <div className="font-mono text-xs text-crt-text-dim mb-3">
-          &gt; boot crt-portfolio.sys ... OK
+          &gt; boot mtk.sys ... OK
         </div>
         <h1 className="font-pixel text-4xl sm:text-6xl text-crt-accent text-glow leading-tight">
           <Typewriter text="HELLO. I BUILD THINGS." speed={55} />

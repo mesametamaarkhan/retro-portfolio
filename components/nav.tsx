@@ -8,10 +8,9 @@ const LINKS = [
   { href: '/', label: 'HOME' },
   { href: '/dev', label: 'DEV' },
   { href: '/cybersecurity', label: 'CYBER' },
-  { href: '/blockchain', label: 'CHAIN' },
+  // { href: '/blockchain', label: 'CHAIN' },
   { href: '/resume', label: 'RESUME' },
   { href: '/contact', label: 'CONTACT' },
-  { href: '/admin', label: 'ADMIN' },
 ];
 
 export function Nav() {
@@ -22,7 +21,7 @@ export function Nav() {
     <header className="border-b-2 border-crt-border-dim bg-crt-bg/95">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/" className="font-pixel text-xl text-crt-accent text-glow">
-          CRT//FOLIO
+          root@mtk
         </Link>
 
       {/* desktop menu */}

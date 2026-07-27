@@ -5,7 +5,7 @@ export default function CybersecurityPage() {
     <DomainProjects
       domain="cybersecurity"
       heading="CYBERSECURITY"
-      subheading="Offense, defense and research. Categories are admin-editable — filter with the chips below."
+      subheading="Offense, defense and research. Filter by category the chips below."
     />
   );
 }

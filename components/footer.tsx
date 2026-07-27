@@ -4,7 +4,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-6 font-mono text-xs text-crt-text-dim">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            <span className="text-crt-accent">CRT//FOLIO</span> v1.0 — RETRO TERMINAL
+            <span className="text-crt-accent">root@mtk</span> v1.0 — RETRO TERMINAL
             EDITION
           </span>
           <span>

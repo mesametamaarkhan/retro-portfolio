@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { Typewriter } from '@/components/typewriter';
-import { Github, Twitter, Linkedin, Mail, Send } from 'lucide-react';
+import { Github, Linkedin, Mail, Send, Instagram } from 'lucide-react';
 
 const SOCIALS = [
-  { label: 'GITHUB', href: 'https://github.com', icon: Github },
-  { label: 'TWITTER', href: 'https://twitter.com', icon: Twitter },
-  { label: 'LINKEDIN', href: 'https://linkedin.com', icon: Linkedin },
-  { label: 'EMAIL', href: 'mailto:hello@example.com', icon: Mail },
+  { label: 'GITHUB', href: 'https://github.com/mesametamaarkhan', icon: Github },
+  { label: 'LINKEDIN', href: 'https://linkedin.com/in/mesam-tamaar-khan', icon: Linkedin },
+  { label: 'EMAIL', href: 'mailto:mesamtamaark@gmail.com', icon: Mail },
+  { label: 'INSTAGRAM', href: 'https://twitter.com', icon: Instagram },
 ];
 
 export default function ContactPage() {
@@ -36,7 +36,7 @@ export default function ContactPage() {
           <Typewriter text="OPEN CHANNEL" speed={40} />
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-crt-text/80">
-          Send a transmission via the form below, or reach out through any of the open channels.
+          <Typewriter text="Send a transmission via the form below, or reach out through any of the open channels." speed={10} startDelay={500} cursor={false}/>
         </p>
       </div>
 
