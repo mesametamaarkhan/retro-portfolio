@@ -52,9 +52,6 @@ export default function AdminPage() {
               <KeyRound size={14} /> AUTHENTICATE
             </button>
           </form>
-          <p className="mt-4 font-mono text-xs text-crt-text-dim">
-            &gt; demo password: admin123
-          </p>
         </div>
       </div>
     );
