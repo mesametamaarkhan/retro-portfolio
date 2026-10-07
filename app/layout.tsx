@@ -21,8 +21,13 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Mesam E Tamaar Khan',
-  description: 'A personal portfolio',
+  title: 'Mesam E Tamaar Khan | Security Engineer',
+  description: 'Security-focused portfolio — offensive and defensive security, secure software development, and infrastructure.',
+  openGraph: {
+    title: 'Mesam E Tamaar Khan | Security Engineer',
+    description: 'Security-focused portfolio — offensive and defensive security, secure software development, and infrastructure.',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

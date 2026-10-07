@@ -3,18 +3,24 @@
 import { useState } from 'react';
 import { Typewriter } from '@/components/typewriter';
 import { Github, Linkedin, Mail, Send, Instagram } from 'lucide-react';
+import { profileData } from '@/lib/data';
 
-const SOCIALS = [
-  { label: 'GITHUB', href: 'https://github.com/mesametamaarkhan', icon: Github },
-  { label: 'LINKEDIN', href: 'https://linkedin.com/in/mesam-tamaar-khan', icon: Linkedin },
-  { label: 'EMAIL', href: 'mailto:mesamtamaark@gmail.com', icon: Mail },
-  { label: 'INSTAGRAM', href: 'https://twitter.com', icon: Instagram },
-];
+interface SocialLink {
+  label: string;
+  href: string;
+  icon: any;
+}
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+
+  const socials: SocialLink[] = [];
+  if (profileData.github_url) socials.push({ label: 'GITHUB', href: profileData.github_url, icon: Github });
+  if (profileData.linkedin_url) socials.push({ label: 'LINKEDIN', href: profileData.linkedin_url, icon: Linkedin });
+  if (profileData.email) socials.push({ label: 'EMAIL', href: `mailto:${profileData.email}`, icon: Mail });
+  if (profileData.instagram_url) socials.push({ label: 'INSTAGRAM', href: profileData.instagram_url, icon: Instagram });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +39,10 @@ export default function ContactPage() {
       <div className="mb-8">
         <div className="font-mono text-xs text-crt-text-dim mb-1">&gt; cd /contact</div>
         <h1 className="font-pixel text-4xl sm:text-5xl text-crt-accent text-glow">
-          <Typewriter text="OPEN CHANNEL" speed={40} />
+          <Typewriter text="SECURE CHANNEL" speed={40} />
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-crt-text/80">
-          <Typewriter text="Send a transmission via the form below, or reach out through any of the open channels." speed={10} startDelay={500} cursor={false}/>
+          <Typewriter text="Send an encrypted transmission via the form below, or reach out through any of the open channels." speed={10} startDelay={500} cursor={false}/>
         </p>
       </div>
 
@@ -98,7 +104,7 @@ export default function ContactPage() {
         <div className="crt-box-dim flex flex-col gap-3 p-5">
           <div className="font-mono text-xs text-crt-text-dim">&gt; open_channels</div>
           <div className="flex flex-col gap-2">
-            {SOCIALS.map((s) => {
+            {socials.map((s) => {
               const Icon = s.icon;
               return (
                 <a

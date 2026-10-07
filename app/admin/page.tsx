@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase, Project, Subcategory, Resume, Domain, DOMAIN_LABELS } from '@/lib/supabase';
+import { useState } from 'react';
 import { useAdmin } from '@/lib/admin-context';
 import { Typewriter } from '@/components/typewriter';
-import { ImageUploader, PdfUploader } from '@/components/image-uploader';
-import { Plus, Trash2, Pencil, X, Save, LogOut, KeyRound, GripVertical } from 'lucide-react';
+import { LogOut, KeyRound, Copy, Check, FileCode, Database } from 'lucide-react';
+import {
+  profileData,
+  projectsData,
+  experiencesData,
+  certificationsData,
+  skillsData,
+  tagsData,
+} from '@/lib/data';
 
-type Tab = 'projects' | 'subcategories' | 'resumes';
-const DOMAINS: Domain[] = ['dev', 'cybersecurity', 'blockchain'];
+type Tab = 'profile' | 'projects' | 'experience' | 'certifications' | 'skills' | 'tags' | 'raw';
+const TABS: Tab[] = ['profile', 'projects', 'experience', 'certifications', 'skills', 'tags', 'raw'];
 
 export default function AdminPage() {
   const { isAdmin, login, logout } = useAdmin();
@@ -61,15 +67,23 @@ export default function AdminPage() {
 }
 
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>('projects');
+  const [tab, setTab] = useState<Tab>('profile');
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="font-mono text-xs text-crt-text-dim">&gt; su admin</div>
+          <div className="font-mono text-xs text-crt-text-dim">&gt; su admin // static mode</div>
           <h1 className="font-pixel text-3xl text-crt-accent text-glow">
-            CONTROL PANEL
+            SYSTEM CONTROL PANEL
           </h1>
         </div>
         <button onClick={onLogout} className="crt-btn">
@@ -77,9 +91,21 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         </button>
       </div>
 
-      {/* tabs */}
+      {/* Info Notice */}
+      <div className="crt-box-dim p-4 mb-6 border-l-4 border-crt-accent bg-crt-bg-soft">
+        <div className="flex items-center gap-2 font-pixel text-lg text-crt-accent">
+          <Database size={16} /> STORAGE MODE: PURE LOCAL STATIC STORE
+        </div>
+        <p className="font-mono text-xs text-crt-text/80 mt-1">
+          Zero external database connected. All portfolio data is loaded directly from{' '}
+          <code className="text-crt-accent bg-black/40 px-1 py-0.5">lib/data.ts</code>.
+          Edit that file directly in your code editor to update items with instant preview.
+        </p>
+      </div>
+
+      {/* Tab navigation */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {(['projects', 'subcategories', 'resumes'] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -93,621 +119,227 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         ))}
       </div>
 
-      {tab === 'projects' && <ProjectsAdmin />}
-      {tab === 'subcategories' && <SubcategoriesAdmin />}
-      {tab === 'resumes' && <ResumesAdmin />}
-    </div>
-  );
-}
-
-/* ---------- Projects ---------- */
-
-const EMPTY_PROJECT = {
-  title: '',
-  description: '',
-  domain: 'dev' as Domain,
-  tech_stack: '',
-  github_url: '',
-  demo_url: '',
-  subcategory_ids: [] as string[],
-  images: [] as string[],
-};
-
-/* ---------- Project list with drag-and-drop reordering ---------- */
-
-interface ProjectListProps {
-  items: Project[];
-  onEdit: (p: Project) => void;
-  onRemove: (id: string) => void;
-  onReorder: (id: string, dir: 'up' | 'down') => void;
-}
-
-function ProjectList({ items, onEdit, onRemove, onReorder }: ProjectListProps) {
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [overIdx, setOverIdx] = useState<number | null>(null);
-
-  const onDrop = async (idx: number) => {
-    if (dragIdx === null || dragIdx === idx) {
-      setDragIdx(null);
-      setOverIdx(null);
-      return;
-    }
-    // Build the new ordering by moving the dragged item to the target position,
-    // then persist sequential order values for the whole domain list.
-    const next = [...items];
-    const [moved] = next.splice(dragIdx, 1);
-    next.splice(idx, 0, moved);
-    await Promise.all(
-      next.map((p, i) => supabase.from('projects').update({ order: i + 1 }).eq('id', p.id)),
-    );
-    setDragIdx(null);
-    setOverIdx(null);
-    // reload via onReorder hack: call onReorder with a no-op then parent reloads
-    // Simpler: trigger parent reload by calling onReorder on first item id 'up' only if needed.
-    // Instead we use a custom event to ask parent to reload.
-    window.dispatchEvent(new CustomEvent('projects:reload'));
-  };
-
-  return (
-    <div className="flex flex-col gap-2">
-      {items.map((p, i) => {
-        const isOver = overIdx === i && dragIdx !== null && dragIdx !== i;
-        return (
-          <div
-            key={p.id}
-            draggable
-            onDragStart={() => setDragIdx(i)}
-            onDragOver={(e) => { e.preventDefault(); setOverIdx(i); }}
-            onDragLeave={() => setOverIdx((v) => (v === i ? null : v))}
-            onDrop={() => onDrop(i)}
-            onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
-            className={`flex flex-wrap items-center justify-between gap-2 border-2 px-3 py-2 transition-colors ${
-              isOver
-                ? 'border-crt-accent bg-crt-accent/10'
-                : 'border-crt-border-dim bg-crt-bg-soft'
-            } ${dragIdx === i ? 'opacity-50' : ''}`}
-            style={{ cursor: 'grab' }}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <GripVertical size={14} className="text-crt-text-dim shrink-0" />
-              <span className="font-mono text-xs text-crt-text-dim shrink-0">
-                #{p.order}
-              </span>
-              <div className="min-w-0">
-                <div className="font-pixel text-lg text-crt-accent truncate">{p.title}</div>
-                <div className="font-mono text-xs text-crt-text-dim truncate">
-                  {p.tech_stack.join(', ')}
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onReorder(p.id, 'up'); }}
-                className="crt-btn !text-xs !py-1 !px-1.5"
-                disabled={i === 0}
-                aria-label="move up"
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onReorder(p.id, 'down'); }}
-                className="crt-btn !text-xs !py-1 !px-1.5"
-                disabled={i === items.length - 1}
-                aria-label="move down"
-              >
-                ↓
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEdit(p); }}
-                className="crt-btn !text-xs !py-1 !px-2"
-              >
-                <Pencil size={12} /> EDIT
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onRemove(p.id); }}
-                className="crt-btn !text-xs !py-1 !px-2"
-              >
-                <Trash2 size={12} /> DEL
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function ProjectsAdmin() {
-  const [items, setItems] = useState<Project[]>([]);
-  const [subcats, setSubcats] = useState<Subcategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Project | null>(null);
-  const [form, setForm] = useState({ ...EMPTY_PROJECT });
-  const [showForm, setShowForm] = useState(false);
-
-  const toggleSubcat = (id: string) => {
-    setForm((f) => ({
-      ...f,
-      subcategory_ids: f.subcategory_ids.includes(id)
-        ? f.subcategory_ids.filter((x) => x !== id)
-        : [...f.subcategory_ids, id],
-    }));
-  };
-
-  const load = async () => {
-    setLoading(true);
-    const [{ data: pj }, { data: sc }, { data: links }] = await Promise.all([
-      supabase.from('projects').select('*').order('domain').order('order', { ascending: true }),
-      supabase.from('subcategories').select('*').order('domain, name'),
-      supabase.from('project_subcategories').select('*'),
-    ]);
-    const linkRows = (links as { project_id: string; subcategory_id: string }[]) || [];
-    const withIds: Project[] = ((pj as Project[]) || []).map((p) => ({
-      ...p,
-      subcategory_ids: linkRows
-        .filter((l) => l.project_id === p.id)
-        .map((l) => l.subcategory_id),
-    }));
-    setItems(withIds);
-    setSubcats((sc as Subcategory[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-    const handler = () => load();
-    window.addEventListener('projects:reload', handler);
-    return () => window.removeEventListener('projects:reload', handler);
-  }, []);
-
-  const startNew = () => {
-    setEditing(null);
-    setForm({ ...EMPTY_PROJECT });
-    setShowForm(true);
-  };
-  const startEdit = (p: Project) => {
-    setEditing(p);
-    setShowForm(true);
-    setForm({
-      title: p.title,
-      description: p.description,
-      domain: p.domain as Domain,
-      tech_stack: p.tech_stack.join(', '),
-      github_url: p.github_url || '',
-      demo_url: p.demo_url || '',
-      subcategory_ids: p.subcategory_ids || [],
-      images: p.images || [],
-    });
-  };
-
-  const syncSubcats = async (projectId: string, ids: string[]) => {
-    await supabase.from('project_subcategories').delete().eq('project_id', projectId);
-    if (ids.length) {
-      await supabase
-        .from('project_subcategories')
-        .insert(ids.map((subcategory_id) => ({ project_id: projectId, subcategory_id })));
-    }
-  };
-
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    let order = editing?.order ?? 0;
-    if (!editing) {
-      const sameDomain = items.filter((p) => p.domain === form.domain);
-      order = sameDomain.length
-        ? Math.max(...sameDomain.map((p) => p.order)) + 1
-        : 1;
-    }
-    const payload = {
-      title: form.title,
-      description: form.description,
-      domain: form.domain,
-      tech_stack: form.tech_stack.split(',').map((s) => s.trim()).filter(Boolean),
-      github_url: form.github_url || null,
-      demo_url: form.demo_url || null,
-      images: form.images,
-      order,
-    };
-    let projectId = editing?.id;
-    if (editing) {
-      await supabase.from('projects').update(payload).eq('id', editing.id);
-    } else {
-      const { data, error } = await supabase.from('projects').insert(payload).select('id').single();
-      if (data) projectId = data.id;
-      if (error) console.error(error);
-    }
-    if (projectId) await syncSubcats(projectId, form.subcategory_ids);
-    setEditing(null);
-    setForm({ ...EMPTY_PROJECT });
-    setShowForm(false);
-    await load();
-  };
-
-  const reorder = async (projectId: string, direction: 'up' | 'down') => {
-    const domainItems = items.filter((p) => p.domain === items.find((x) => x.id === projectId)?.domain);
-    const idx = domainItems.findIndex((p) => p.id === projectId);
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= domainItems.length) return;
-    const a = domainItems[idx];
-    const b = domainItems[swapIdx];
-    const aOrder = a.order;
-    const bOrder = b.order;
-    await Promise.all([
-      supabase.from('projects').update({ order: bOrder }).eq('id', a.id),
-      supabase.from('projects').update({ order: aOrder }).eq('id', b.id),
-    ]);
-    await load();
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm('Delete this project?')) return;
-    await supabase.from('projects').delete().eq('id', id);
-    await load();
-  };
-
-  if (loading) return <div className="font-pixel text-xl text-crt-text-dim blink">LOADING...</div>;
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="crt-box-dim p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="font-mono text-xs text-crt-text-dim">&gt; projects.db</span>
-          <button onClick={startNew} className="crt-btn crt-btn-solid !text-xs !py-1.5">
-            <Plus size={14} /> NEW
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {DOMAINS.map((d) => {
-            const domainItems = items.filter((p) => p.domain === d);
-            if (domainItems.length === 0) return null;
-            return (
-              <div key={d} className="flex flex-col gap-2">
-                <div className="font-mono text-xs text-crt-text-dim">
-                  &gt; {DOMAIN_LABELS[d]} ({domainItems.length})
-                </div>
-                <ProjectList
-                  items={domainItems}
-                  onEdit={startEdit}
-                  onRemove={remove}
-                  onReorder={reorder}
-                />
-              </div>
-            );
-          })}
-          {items.length === 0 && (
-            <div className="font-mono text-xs text-crt-text-dim">&gt; no records</div>
-          )}
-        </div>
-      </div>
-
-      {showForm && (
-        <form onSubmit={save} className="crt-box flex flex-col gap-3 p-4">
+      {/* Tab Contents */}
+      {tab === 'profile' && (
+        <div className="crt-box p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs text-crt-accent">
-              {editing ? '&gt; edit record' : '&gt; new record'}
-            </span>
+            <h2 className="font-pixel text-2xl text-crt-accent">&gt; PROFILE CONFIG</h2>
             <button
-              type="button"
-              onClick={() => {
-                setEditing(null);
-                setForm({ ...EMPTY_PROJECT });
-                setShowForm(false);
-              }}
+              onClick={() => copyToClipboard(JSON.stringify(profileData, null, 2))}
               className="crt-btn !text-xs !py-1 !px-2"
             >
-              <X size={12} /> CLOSE
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY JSON
             </button>
           </div>
+          <div className="grid gap-3 sm:grid-cols-2 font-mono text-xs">
+            <FieldRow label="NAME" value={profileData.name} />
+            <FieldRow label="TITLE" value={profileData.title} />
+            <FieldRow label="TAGLINE" value={profileData.tagline} />
+            <FieldRow label="LOCATION" value={profileData.location} />
+            <FieldRow label="EMAIL" value={profileData.email} />
+            <FieldRow label="GITHUB" value={profileData.github_url || '—'} />
+            <FieldRow label="LINKEDIN" value={profileData.linkedin_url || '—'} />
+            <FieldRow label="RESUME URL" value={profileData.resume_url || '—'} />
+          </div>
+          <div className="mt-4 pt-4 border-t border-crt-border-dim font-mono text-xs">
+            <span className="text-crt-accent font-bold">BIO:</span>
+            <p className="mt-1 text-crt-text/90 leading-relaxed">{profileData.bio}</p>
+          </div>
+        </div>
+      )}
 
-          <Field label="TITLE">
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="crt-input"
-              required
-            />
-          </Field>
-
-          <Field label="DESCRIPTION">
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={3}
-              className="crt-input resize-none"
-              required
-            />
-          </Field>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="DOMAIN">
-              <select
-                value={form.domain}
-                onChange={(e) => setForm({ ...form, domain: e.target.value as Domain })}
-                className="crt-input"
-              >
-                {DOMAINS.map((d) => (
-                  <option key={d} value={d}>
-                    {DOMAIN_LABELS[d]}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="SUBCATEGORIES (select any)">
-              <div className="flex flex-wrap gap-2">
-                {subcats
-                  .filter((s) => s.domain === form.domain)
-                  .map((s) => {
-                    const on = form.subcategory_ids.includes(s.id);
-                    return (
-                      <button
-                        type="button"
-                        key={s.id}
-                        onClick={() => toggleSubcat(s.id)}
-                        className={`crt-chip ${on ? 'crt-chip-active' : ''}`}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {on ? '[ ' : '  '}
-                        {s.name}
-                        {on ? ' ]' : '  '}
-                      </button>
-                    );
-                  })}
-                {subcats.filter((s) => s.domain === form.domain).length === 0 && (
-                  <span className="font-mono text-xs text-crt-text-dim">— none defined —</span>
-                )}
+      {tab === 'projects' && (
+        <div className="crt-box p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-pixel text-2xl text-crt-accent">&gt; PROJECTS LIST ({projectsData.length})</h2>
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(projectsData, null, 2))}
+              className="crt-btn !text-xs !py-1 !px-2"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY ALL
+            </button>
+          </div>
+          <div className="space-y-3">
+            {projectsData.map((p) => (
+              <div key={p.id} className="crt-box-dim p-4 flex flex-col md:flex-row justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-pixel text-xl text-crt-accent">{p.title}</span>
+                    {p.featured && (
+                      <span className="crt-chip crt-chip-active text-[10px]">FEATURED</span>
+                    )}
+                  </div>
+                  <p className="font-mono text-xs text-crt-text/80">{p.description}</p>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {p.tech_stack.map((t) => (
+                      <span key={t} className="crt-chip text-[10px]">{t}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="font-mono text-xs text-crt-text-dim shrink-0">
+                  ORDER: #{p.order}
+                </div>
               </div>
-            </Field>
+            ))}
           </div>
+        </div>
+      )}
 
-          <Field label="TECH STACK (comma separated)">
-            <input
-              value={form.tech_stack}
-              onChange={(e) => setForm({ ...form, tech_stack: e.target.value })}
-              className="crt-input"
-              placeholder="TypeScript, React, ..."
-            />
-          </Field>
+      {tab === 'experience' && (
+        <div className="crt-box p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-pixel text-2xl text-crt-accent">&gt; WORK TIMELINE ({experiencesData.length})</h2>
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(experiencesData, null, 2))}
+              className="crt-btn !text-xs !py-1 !px-2"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY JSON
+            </button>
+          </div>
+          <div className="space-y-4">
+            {experiencesData.map((exp) => (
+              <div key={exp.id} className="crt-box-dim p-4 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-pixel text-xl text-crt-accent">{exp.company}</h3>
+                    <div className="font-mono text-sm text-crt-text">{exp.role}</div>
+                  </div>
+                  <span className="font-mono text-xs text-crt-text-dim">
+                    {exp.start_date} — {exp.end_date || 'PRESENT'}
+                  </span>
+                </div>
+                <ul className="font-mono text-xs text-crt-text/90 space-y-1 pl-2">
+                  {exp.bullets.map((b, i) => (
+                    <li key={i}>&gt; {b}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-          <Field label="IMAGES">
-            <ImageUploader
-              images={form.images}
-              onChange={(images) => setForm({ ...form, images })}
-            />
-          </Field>
-
+      {tab === 'certifications' && (
+        <div className="crt-box p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-pixel text-2xl text-crt-accent">&gt; CERTIFICATIONS ({certificationsData.length})</h2>
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(certificationsData, null, 2))}
+              className="crt-btn !text-xs !py-1 !px-2"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY JSON
+            </button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="GITHUB URL">
-              <input
-                value={form.github_url}
-                onChange={(e) => setForm({ ...form, github_url: e.target.value })}
-                className="crt-input"
-              />
-            </Field>
-            <Field label="DEMO URL">
-              <input
-                value={form.demo_url}
-                onChange={(e) => setForm({ ...form, demo_url: e.target.value })}
-                className="crt-input"
-              />
-            </Field>
+            {certificationsData.map((c) => (
+              <div key={c.id} className="crt-box-dim p-4 space-y-1">
+                <h3 className="font-pixel text-lg text-crt-accent">{c.name}</h3>
+                <div className="font-mono text-xs text-crt-text-dim">{c.issuer}</div>
+                <div className="font-mono text-xs text-crt-text/80">
+                  ISSUED: {c.issued_date} {c.expiry_date ? `| EXP: ${c.expiry_date}` : ''}
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+      )}
 
-          <button type="submit" className="crt-btn crt-btn-solid w-full">
-            <Save size={14} /> SAVE
-          </button>
-        </form>
+      {tab === 'skills' && (
+        <div className="crt-box p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-pixel text-2xl text-crt-accent">&gt; SKILLS INVENTORY ({skillsData.length})</h2>
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(skillsData, null, 2))}
+              className="crt-btn !text-xs !py-1 !px-2"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY JSON
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {skillsData.map((s) => (
+              <span key={s.id} className="crt-chip">
+                <span className="text-crt-accent">[{s.group_name}]</span> {s.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'tags' && (
+        <div className="crt-box p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-pixel text-2xl text-crt-accent">&gt; PROJECT TAGS ({tagsData.length})</h2>
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(tagsData, null, 2))}
+              className="crt-btn !text-xs !py-1 !px-2"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY JSON
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {tagsData.map((t) => (
+              <span key={t.id} className="crt-chip crt-chip-active">
+                {t.name} <span className="text-crt-text-dim text-[10px]">({t.id})</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'raw' && (
+        <div className="crt-box p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileCode size={18} className="text-crt-accent" />
+              <h2 className="font-pixel text-2xl text-crt-accent">&gt; RAW DATA PREVIEW</h2>
+            </div>
+            <button
+              onClick={() =>
+                copyToClipboard(
+                  JSON.stringify(
+                    {
+                      profile: profileData,
+                      tags: tagsData,
+                      projects: projectsData,
+                      experiences: experiencesData,
+                      certifications: certificationsData,
+                      skills: skillsData,
+                    },
+                    null,
+                    2
+                  )
+                )
+              }
+              className="crt-btn !text-xs !py-1 !px-2"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />} COPY COMPLETE STORE
+            </button>
+          </div>
+          <pre className="crt-box-dim bg-black/60 p-4 font-mono text-xs text-crt-text/90 overflow-x-auto max-h-[500px]">
+            {JSON.stringify(
+              {
+                profile: profileData,
+                tags: tagsData,
+                projects: projectsData,
+                experiences: experiencesData,
+                certifications: certificationsData,
+                skills: skillsData,
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
       )}
     </div>
   );
 }
 
-/* ---------- Subcategories ---------- */
-
-function SubcategoriesAdmin() {
-  const [items, setItems] = useState<Subcategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [domain, setDomain] = useState<Domain>('cybersecurity');
-
-  const load = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('subcategories')
-      .select('*')
-      .order('domain, name');
-    setItems((data as Subcategory[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name) return;
-    await supabase.from('subcategories').insert({ name, domain });
-    setName('');
-    await load();
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm('Delete this category? Projects using it will be unlinked.')) return;
-    await supabase.from('subcategories').delete().eq('id', id);
-    await load();
-  };
-
-  if (loading) return <div className="font-pixel text-xl text-crt-text-dim blink">LOADING...</div>;
-
+function FieldRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-6">
-      <form onSubmit={add} className="crt-box flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
-        <Field label="NAME">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="crt-input"
-            placeholder="e.g. Attack"
-            required
-          />
-        </Field>
-        <Field label="DOMAIN">
-          <select
-            value={domain}
-            onChange={(e) => setDomain(e.target.value as Domain)}
-            className="crt-input"
-          >
-            {DOMAINS.map((d) => (
-              <option key={d} value={d}>
-                {DOMAIN_LABELS[d]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <button type="submit" className="crt-btn crt-btn-solid">
-          <Plus size={14} /> ADD
-        </button>
-      </form>
-
-      <div className="crt-box-dim p-4">
-        <div className="mb-3 font-mono text-xs text-crt-text-dim">&gt; subcategories.db</div>
-        <div className="flex flex-col gap-2">
-          {items.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between gap-2 border-2 border-crt-border-dim bg-crt-bg-soft px-3 py-2"
-            >
-              <div className="font-mono text-sm text-crt-text">
-                <span className="text-crt-accent">{s.name}</span>{' '}
-                <span className="text-crt-text-dim">/ {s.domain}</span>
-              </div>
-              <button onClick={() => remove(s.id)} className="crt-btn !text-xs !py-1 !px-2">
-                <Trash2 size={12} /> DEL
-              </button>
-            </div>
-          ))}
-          {items.length === 0 && (
-            <div className="font-mono text-xs text-crt-text-dim">&gt; no records</div>
-          )}
-        </div>
-      </div>
+    <div className="border border-crt-border-dim/40 p-2 bg-crt-bg-soft">
+      <span className="text-crt-text-dim block text-[10px] uppercase">{label}</span>
+      <span className="text-crt-accent font-medium truncate block">{value}</span>
     </div>
-  );
-}
-
-/* ---------- Resumes ---------- */
-
-function ResumesAdmin() {
-  const [items, setItems] = useState<Resume[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [domain, setDomain] = useState<Domain>('dev');
-  const [title, setTitle] = useState('');
-  const [fileUrl, setFileUrl] = useState('');
-
-  const load = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('resumes').select('*').order('domain');
-    setItems((data as Resume[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !fileUrl) return;
-    await supabase.from('resumes').insert({ domain, title, file_url: fileUrl });
-    setTitle('');
-    setFileUrl('');
-    await load();
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm('Delete this resume?')) return;
-    await supabase.from('resumes').delete().eq('id', id);
-    await load();
-  };
-
-  if (loading) return <div className="font-pixel text-xl text-crt-text-dim blink">LOADING...</div>;
-
-  return (
-    <div className="flex flex-col gap-6">
-      <form onSubmit={add} className="crt-box flex flex-col gap-3 p-4">
-        <div className="font-mono text-xs text-crt-accent">&gt; new resume</div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="DOMAIN">
-            <select
-              value={domain}
-              onChange={(e) => setDomain(e.target.value as Domain)}
-              className="crt-input"
-            >
-              {DOMAINS.map((d) => (
-                <option key={d} value={d}>
-                  {DOMAIN_LABELS[d]}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="TITLE">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="crt-input"
-              required
-            />
-          </Field>
-          <Field label="PDF FILE">
-            <PdfUploader url={fileUrl} onChange={setFileUrl} />
-          </Field>
-        </div>
-        <button type="submit" className="crt-btn crt-btn-solid">
-          <Plus size={14} /> ADD
-        </button>
-      </form>
-
-      <div className="crt-box-dim p-4">
-        <div className="mb-3 font-mono text-xs text-crt-text-dim">&gt; resumes.db</div>
-        <div className="flex flex-col gap-2">
-          {items.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-center justify-between gap-2 border-2 border-crt-border-dim bg-crt-bg-soft px-3 py-2"
-            >
-              <div className="min-w-0">
-                <div className="font-pixel text-lg text-crt-accent truncate">{r.title}</div>
-                <div className="font-mono text-xs text-crt-text-dim truncate">
-                  {r.domain} · {r.file_url}
-                </div>
-              </div>
-              <button onClick={() => remove(r.id)} className="crt-btn !text-xs !py-1 !px-2">
-                <Trash2 size={12} /> DEL
-              </button>
-            </div>
-          ))}
-          {items.length === 0 && (
-            <div className="font-mono text-xs text-crt-text-dim">&gt; no records</div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- helpers ---------- */
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="font-mono text-xs text-crt-accent">{label}:</span>
-      {children}
-    </label>
   );
 }

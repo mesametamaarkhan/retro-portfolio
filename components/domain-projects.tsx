@@ -1,61 +1,39 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { supabase, Project, Subcategory, Domain, ProjectSubcategory } from '@/lib/supabase';
+import { useState, useCallback } from 'react';
+import { projectsData, tagsData } from '@/lib/data';
 import { ProjectCard } from '@/components/project-card';
 import { ProjectModal } from '@/components/project-modal';
 import { FilterBar } from '@/components/filter-bar';
 import { Typewriter } from '@/components/typewriter';
-import { DOMAIN_LABELS } from '@/lib/supabase';
 
-interface DomainProjectsProps {
-  domain: Domain;
+interface AllProjectsProps {
   heading: string;
   subheading: string;
 }
 
-export function DomainProjects({ domain, heading, subheading }: DomainProjectsProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [subcats, setSubcats] = useState<Subcategory[]>([]);
+export function AllProjects({ heading, subheading }: AllProjectsProps) {
   const [active, setActive] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [flickerKey, setFlickerKey] = useState(0);
-  const [openProject, setOpenProject] = useState<Project | null>(null);
+  const [openProject, setOpenProject] = useState<any | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const [{ data: pj }, { data: sc }, { data: links }] = await Promise.all([
-        supabase
-          .from('projects')
-          .select('*')
-          .eq('domain', domain)
-          .order('featured', { ascending: false })
-          .order('order', { ascending: true }),
-        supabase.from('subcategories').select('*').eq('domain', domain).order('name'),
-        supabase.from('project_subcategories').select('*'),
-      ]);
-      if (cancelled) return;
-      const linkRows = (links as ProjectSubcategory[]) || [];
-      const withIds: Project[] = ((pj as Project[]) || []).map((p) => ({
-        ...p,
-        subcategory_ids: linkRows
-          .filter((l) => l.project_id === p.id)
-          .map((l) => l.subcategory_id),
-      }));
-      setProjects(withIds);
-      setSubcats((sc as Subcategory[]) || []);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [domain]);
+  // Map projects to format expected by cards (with subcategory_ids)
+  const projects = projectsData.map((p) => ({
+    ...p,
+    domain: '',
+    subcategory_id: null,
+    subcategory_ids: p.tag_ids,
+  }));
+
+  const subcats = tagsData.map((t) => ({
+    id: t.id,
+    name: t.name,
+    domain: 'all',
+  }));
 
   const toggle = useCallback((name: string) => {
     setActive((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
     );
     setFlickerKey((k) => k + 1);
   }, []);
@@ -79,7 +57,7 @@ export function DomainProjects({ domain, heading, subheading }: DomainProjectsPr
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8">
         <div className="font-mono text-xs text-crt-text-dim mb-1">
-          &gt; cd /{domain}
+          &gt; cd /projects
         </div>
         <h1 className="font-pixel text-4xl sm:text-5xl text-crt-accent text-glow">
           <Typewriter text={heading} speed={40} />
@@ -91,7 +69,7 @@ export function DomainProjects({ domain, heading, subheading }: DomainProjectsPr
 
       <div className="mb-6">
         <div className="font-mono text-xs text-crt-text-dim mb-2">
-          &gt; FILTER {DOMAIN_LABELS[domain]} CATEGORIES:
+          &gt; FILTER BY TAG:
         </div>
         <FilterBar
           subcategories={subcats}
@@ -101,11 +79,7 @@ export function DomainProjects({ domain, heading, subheading }: DomainProjectsPr
         />
       </div>
 
-      {loading ? (
-        <div className="font-pixel text-2xl text-crt-text-dim blink">
-          LOADING SIGNAL...
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="crt-box-dim p-6 font-pixel text-xl text-crt-text-dim">
           &gt; NO PROJECTS MATCH FILTER. PRESS [ ALL ] TO RESET.
         </div>
@@ -116,7 +90,7 @@ export function DomainProjects({ domain, heading, subheading }: DomainProjectsPr
           style={{ gridAutoRows: '1fr', alignItems: 'stretch' }}
         >
           {filtered.map((p, i) => (
-            <ProjectCard key={p.id} project={p} index={i} onOpen={setOpenProject} />
+            <ProjectCard key={p.id} project={p as any} index={i} onOpen={setOpenProject} />
           ))}
         </div>
       )}
